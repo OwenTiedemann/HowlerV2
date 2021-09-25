@@ -28,15 +28,21 @@ bot.reaction_event_database = database_client['reactionevents']
 initial_extensions = ['cogs.reactions']
 
 whitelisted_channels = ["test-commands"]
-whitelisted_categories = []
+greylisted_channels = []
 
 _cd = commands.CooldownMapping.from_cooldown(1.0, 20.0, commands.BucketType.channel)  # from ?tag cooldown mapping
 
+# TODO LIST
+#   FINISH BotManagement channel commands
+#   START Everything else
+
+
 @bot.check
 async def restrict_commands(ctx):
+    # CHECKS IF COMMAND IS IN WHITELISTED CHANNELS
+    #   CONTINUES PAST CHECK
+    # FAILS CHECK
     if ctx.channel.name in whitelisted_channels:
-        return True
-    elif ctx.channel.category.id in whitelisted_categories:
         return True
     else:
         return False
@@ -44,9 +50,10 @@ async def restrict_commands(ctx):
 
 @bot.check
 async def cool_down_check(ctx):
-    if ctx.channel.category.id in whitelisted_categories:
-        return True
-    if ctx.channel.name == "game-thread":
+    # CHECK IF COMMAND IS IN GREYLISTED CHANNELS
+    #   CONTINUES PAST CHECK AND STARTS COOLDOWN
+    # CONTINUES PAST CHECK
+    if ctx.channel.name in greylisted_channels:
         bucket = _cd.get_bucket(ctx.message)
         retry_after = bucket.update_rate_limit()
         if retry_after:
@@ -55,6 +62,7 @@ async def cool_down_check(ctx):
     else:
         return True
 
+
 @bot.event
 async def on_message(message):
     # ON MESSAGE:
@@ -62,6 +70,7 @@ async def on_message(message):
     #       ADDS REACTION
     #   CHECKS IF MESSAGE IS AN IMAGE COMMAND
     #       SENDS IMAGE
+
     x = message.content.lower()
     for event in bot.reaction_events:
         if event.text in x:
@@ -69,7 +78,7 @@ async def on_message(message):
                 emoji = bot.get_emoji(event.reaction)
                 await message.add_reaction(emoji)
             else:
-                await message.add_reaction(event.name)
+                await message.add_reaction(event.reaction)
     if message.content.startswith(("howler ", "Howler ")):
         res = message.content[0].lower() + message.content[1:]
         for command in bot.image_commands:

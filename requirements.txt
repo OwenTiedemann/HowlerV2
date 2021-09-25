@@ -1,3 +1,2 @@
 discord~=1.7.3
 motor~=2.5.0
-emojis~=0.6.0

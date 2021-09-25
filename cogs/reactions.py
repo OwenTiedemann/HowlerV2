@@ -2,7 +2,6 @@ import typing
 
 import discord
 from discord.ext import commands, tasks
-import emojis
 
 
 class ReactionEvent:
@@ -79,9 +78,15 @@ class Reactions(commands.Cog, name="Reactions"):
         list_string = "```"
         for reaction_event in self.bot.reaction_events:
             if len(reaction_event.text) <= 10:
-                list_string += f"{reaction_event.event_id} :{reaction_event.reaction_name}: {reaction_event.text}\n"
+                if reaction_event.type == "custom":
+                    list_string += f"{reaction_event.event_id} :{reaction_event.reaction_name}: {reaction_event.text}\n"
+                else:
+                    list_string += f"{reaction_event.event_id} {reaction_event.reaction} {reaction_event.text}\n"
             else:
-                list_string += f"{reaction_event.event_id} :{reaction_event.reaction_name}: {reaction_event.text[:10]}..\n"
+                if reaction_event.type == "custom":
+                    list_string += f"{reaction_event.event_id} :{reaction_event.reaction_name}: {reaction_event.text[:10]}..\n"
+                else:
+                    list_string += f"{reaction_event.event_id} {reaction_event.reaction} {reaction_event.text[:10]}..\n"
 
         list_string += "```"
 
