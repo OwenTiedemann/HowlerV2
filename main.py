@@ -26,7 +26,7 @@ bot.reaction_event_database = database_client['reactionevents']
 bot.server_info_database = database_client['server_info']
 bot.text_database = database_client['text_commands']
 
-initial_extensions = ['cogs.reactions', 'cogs.BotManagement', 'cogs.textcommands']
+initial_extensions = ['cogs.reactions', 'cogs.BotManagement', 'cogs.textcommands', 'cogs.imagecommands']
 
 bot.whitelisted_channels = []
 bot.greylisted_channels = []
@@ -34,7 +34,6 @@ bot.greylisted_channels = []
 _cd = commands.CooldownMapping.from_cooldown(1.0, 20.0, commands.BucketType.channel)  # from ?tag cooldown mapping
 
 # TODO LIST
-#   FINISH BotManagement channel commands
 #   ADD role checks to reaction commands
 #   ADD role checks to bot management channel commands
 #   START Everything else
