@@ -4,6 +4,15 @@ import discord
 from discord.ext import commands, tasks
 
 
+def has_custom_commands_role(ctx):
+    if discord.utils.get(ctx.author.roles, name="Commands"):
+        return True
+    elif discord.utils.get(ctx.author.roles, name="Discord Admin"):
+        return True
+    else:
+        return False
+
+
 class ReactionEvent:
     def __init__(self, event_id, text, type, reaction, reaction_name):
         self.event_id = event_id
@@ -24,22 +33,25 @@ class Reactions(commands.Cog, name="Reactions"):
         self.bot.reaction_events.clear()
         collection = await self.reaction_events_collection.find({}).to_list(length=None)
         for document in collection:
-            x = ReactionEvent(document["_id"], document['text'], document['type'], document['reaction'], document['reaction_name'])
+            x = ReactionEvent(document["_id"], document['text'], document['type'], document['reaction'],
+                              document['reaction_name'])
             self.bot.reaction_events.append(x)
 
-    @commands.group()
+    @commands.group(brief="Reaction Event Group Commands")
     async def reactionevent(self, ctx):
-        pass
+        if not ctx.invoked_subcommand:
+            await ctx.send(
+                "This is a group command, use `howler help reactionevent` to get list of subcommands under this command.")
+            return
 
-    @reactionevent.command()
-    @commands.has_role('Discord Admin')
+    @reactionevent.command(brief="Adds a reaction event.")
+    @commands.check(has_custom_commands_role)
     async def add(self, ctx, event_id: int, reaction: typing.Union[discord.Emoji, str], *, text):
         if type(reaction) == str:
             if await self.reaction_events_collection.count_documents({"_id": event_id}, limit=1) != 0:
                 await ctx.send("That event id already exists, try a different one!")
                 return
 
-            print(reaction)
             text = text.lower()
 
             reaction_event_dict = {"_id": event_id, "text": text, "type": "built-in", "reaction": reaction,
@@ -65,15 +77,13 @@ class Reactions(commands.Cog, name="Reactions"):
             x = ReactionEvent(event_id, text, "custom", reaction.id, reaction.name)
             self.bot.reaction_events.append(x)
 
-
-
-    @reactionevent.command()
-    @commands.has_role('Discord Admin')
+    @reactionevent.command(brief="Removes a reaction event.")
+    @commands.check(has_custom_commands_role)
     async def remove(self, ctx, event_id: int):
         await self.reaction_events_collection.delete_many({"_id": event_id})
         self.get_all_reaction_events.start()
 
-    @reactionevent.command()
+    @reactionevent.command(brief="Lists all reaction events.")
     async def list(self, ctx):
         list_string = "```"
         for reaction_event in self.bot.reaction_events:

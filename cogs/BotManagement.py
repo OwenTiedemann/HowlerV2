@@ -45,9 +45,13 @@ class ManagementCommands(commands.Cog, name="Management Commands"):
 
     @commands.group()
     async def greylist(self, ctx):
-        pass
+        if not ctx.invoked_subcommand:
+            await ctx.send(
+                "This is a group command, use `howler whitelist help` to get list of subcommands under this command.")
+            return
 
-    @greylist.command()
+    @greylist.command(brief="Enables 20 second cooldown on commands in this channel.")
+    @commands.has_role('Discord Admin')
     async def enable(self, ctx, channel: discord.TextChannel):
         if await self.greylist_collection.count_documents({"_id": channel.id}, limit=1) != 0:
             return await ctx.send("This channel is already greylisted.")
@@ -57,8 +61,10 @@ class ManagementCommands(commands.Cog, name="Management Commands"):
         await self.whitelist_collection.insert_one(channel_dict)
 
         await ctx.send(f"Added {channel.name} to the greylist!")
+        self.get_all_whitelisted_greylisted_channels.start()
 
-    @greylist.command()
+    @greylist.command(brief="Disables cooldowns for commands in specified channel", description="Disables cooldowns for commands in specified channel. Disables commands if channel is not in whitelist.")
+    @commands.has_role('Discord Admin')
     async def disable(self, ctx, channel: discord.TextChannel):
         if await self.greylist_collection.count_documents({"_id": channel.id}, limit=1) != 0:
             await self.greylist_collection.delete_one({"_id": channel.id})
@@ -66,8 +72,9 @@ class ManagementCommands(commands.Cog, name="Management Commands"):
             await ctx.send(f"Removed {channel.name} from the greylist!")
         else:
             await ctx.send(f"{channel.name} is not on the greylist!")
+        self.get_all_whitelisted_greylisted_channels.start()
 
-    @greylist.command()
+    @greylist.command(brief="Lists all greylisted commands.")
     async def list(self, ctx):
         list_string = "```"
         for channel_id in self.bot.greylisted_channels:
@@ -86,9 +93,13 @@ class ManagementCommands(commands.Cog, name="Management Commands"):
 
     @commands.group()
     async def whitelist(self, ctx):
-        pass
+        if not ctx.invoked_subcommand:
+            await ctx.send(
+                "This is a group command, use `howler whitelist help` to get list of subcommands under this command.")
+            return
 
-    @whitelist.command()
+    @whitelist.command(brief="Enables all commands in specified channels.")
+    @commands.has_role('Discord Admin')
     async def enable(self, ctx, channel: discord.TextChannel):
         if await self.whitelist_collection.count_documents({"_id": channel.id}, limit=1) != 0:
             return await ctx.send("This channel is already whitelisted.")
@@ -98,8 +109,10 @@ class ManagementCommands(commands.Cog, name="Management Commands"):
         await self.whitelist_collection.insert_one(channel_dict)
 
         await ctx.send(f"Added {channel.name} to the whitelist!")
+        self.get_all_whitelisted_greylisted_channels.start()
 
-    @whitelist.command()
+    @whitelist.command(brief="Disables all commands in specified channel.", description="Disables all commands in specified channel. If channel is greylisted commands will continue to work.")
+    @commands.has_role('Discord Admin')
     async def disable(self, ctx, channel: discord.TextChannel):
         if await self.whitelist_collection.count_documents({"_id": channel.id}, limit=1) != 0:
             await self.whitelist_collection.delete_one({"_id": channel.id})
@@ -107,8 +120,9 @@ class ManagementCommands(commands.Cog, name="Management Commands"):
             await ctx.send(f"Removed {channel.name} from the whitelist!")
         else:
             await ctx.send(f"{channel.name} is not on the whitelist!")
+        self.get_all_whitelisted_greylisted_channels.start()
 
-    @whitelist.command()
+    @whitelist.command(brief="Lists all whitelisted channels.")
     async def list(self, ctx):
         list_string = "```"
         for channel_id in self.bot.whitelisted_channels:

@@ -1,4 +1,5 @@
 import discord
+import tweepy
 from discord.ext import commands
 import motor.motor_asyncio
 import configparser
@@ -11,7 +12,7 @@ DISCORD_TOKEN = config['DISCORD']['token']
 intents = discord.Intents.default()
 intents.members = True
 
-bot = commands.Bot(command_prefix=['howlertest ', 'Howlertest '], intents=intents)
+bot = commands.Bot(command_prefix=['howler ', 'Howler '], intents=intents)
 bot.max_messages = 1000
 bot.image_commands = []
 bot.reaction_events = []
@@ -26,17 +27,12 @@ bot.reaction_event_database = database_client['reactionevents']
 bot.server_info_database = database_client['server_info']
 bot.text_database = database_client['text_commands']
 
-initial_extensions = ['cogs.reactions', 'cogs.BotManagement', 'cogs.textcommands', 'cogs.imagecommands']
+initial_extensions = ['cogs.reactions', 'cogs.BotManagement', 'cogs.textcommands', 'cogs.imagecommands', 'cogs.nhlcommands', 'cogs.triviacommands', 'cogs.twitter']
 
 bot.whitelisted_channels = []
 bot.greylisted_channels = []
 
 _cd = commands.CooldownMapping.from_cooldown(1.0, 20.0, commands.BucketType.channel)  # from ?tag cooldown mapping
-
-# TODO LIST
-#   ADD role checks to reaction commands
-#   ADD role checks to bot management channel commands
-#   START Everything else
 
 
 @bot.check
@@ -47,6 +43,8 @@ async def restrict_commands(ctx):
     if ctx.channel.id in bot.whitelisted_channels:
         return True
     elif not bot.whitelisted_channels:
+        return True
+    elif ctx.channel.id in bot.greylisted_channels:
         return True
     else:
         return False
@@ -74,7 +72,8 @@ async def on_message(message):
     #       ADDS REACTION
     #   CHECKS IF MESSAGE IS AN IMAGE COMMAND
     #       SENDS IMAGE
-
+    #   CHECKS IF MESSAGE IS A TEXT COMMAND
+    #       SENDS TEXT
     x = message.content.lower()
     for event in bot.reaction_events:
         if event.text in x:
@@ -94,7 +93,6 @@ async def on_message(message):
             if res == command.command:
                 await message.channel.send(command.text)
                 return
-
 
     await bot.process_commands(message)
 

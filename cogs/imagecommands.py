@@ -2,6 +2,15 @@ import discord
 from discord.ext import commands, tasks
 
 
+def has_custom_commands_role(ctx):
+    if discord.utils.get(ctx.author.roles, name="Commands"):
+        return True
+    elif discord.utils.get(ctx.author.roles, name="Discord Admin"):
+        return True
+    else:
+        return False
+
+
 class ImageCommand:
     def __init__(self, command, file):
         self.command = command
@@ -22,13 +31,18 @@ class Images(commands.Cog, name="Images"):
             x = ImageCommand(document["_id"], document['file'])
             self.bot.image_commands.append(x)
 
-    @commands.group()
+    @commands.group(brief="Image Group Commands.")
     async def image(self, ctx):
-        pass
+        if not ctx.invoked_subcommand:
+            await ctx.send("This is a group command, use `howler help image` to get list of subcommands under this command.")
+            return
 
-    @image.command()
-    @commands.has_role('Discord Admin')
+    @image.command(brief="Adds a custom image command.")
+    @commands.check(has_custom_commands_role)
     async def add(self, ctx, command):
+        if await self.image_collection.count_documents({"_id": f"howler {command}"}, limit=1) != 0:
+            return await ctx.send("This command name is already registered.")
+
         if ctx.message.attachments[0].content_type == "image/gif":
             file_name = f"howler{command}.gif"
         else:
@@ -41,13 +55,13 @@ class Images(commands.Cog, name="Images"):
         x = ImageCommand(command_name, file_name)
         self.bot.image_commands.append(x)
 
-    @image.command()
-    @commands.has_role('Discord Admin')
+    @image.command(brief="Removes a custom image command.")
+    @commands.check(has_custom_commands_role)
     async def remove(self, ctx, command):
         await self.image_collection.delete_many({"_id": f"howler {command}"})
         self.get_all_images.start()
 
-    @image.command()
+    @image.command(brief="Lists all custom image commands.")
     async def list(self, ctx):
         list_string = "```"
         for command in self.bot.image_commands:
