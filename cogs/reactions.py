@@ -19,9 +19,9 @@ class Reactions(commands.Cog, name="Reactions"):
         self.reaction_events_collection = bot.reaction_event_database['events']
         self.get_all_reaction_events.start()
 
-    @tasks.loop(seconds=1, count=1)
+    @tasks.loop(count=1)
     async def get_all_reaction_events(self):
-        self.bot.image_commands.clear()
+        self.bot.reaction_events.clear()
         collection = await self.reaction_events_collection.find({}).to_list(length=None)
         for document in collection:
             x = ReactionEvent(document["_id"], document['text'], document['type'], document['reaction'], document['reaction_name'])

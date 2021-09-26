@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands
 import motor.motor_asyncio
-import datetime
 import configparser
 
 config = configparser.ConfigParser()
@@ -24,16 +23,20 @@ bot.trivia_database = database_client['database']
 bot.image_database = database_client['images']
 bot.articles_database = database_client['articlefeeds']
 bot.reaction_event_database = database_client['reactionevents']
+bot.server_info_database = database_client['server_info']
+bot.text_database = database_client['text_commands']
 
-initial_extensions = ['cogs.reactions']
+initial_extensions = ['cogs.reactions', 'cogs.BotManagement', 'cogs.textcommands']
 
-whitelisted_channels = ["test-commands"]
-greylisted_channels = []
+bot.whitelisted_channels = []
+bot.greylisted_channels = []
 
 _cd = commands.CooldownMapping.from_cooldown(1.0, 20.0, commands.BucketType.channel)  # from ?tag cooldown mapping
 
 # TODO LIST
 #   FINISH BotManagement channel commands
+#   ADD role checks to reaction commands
+#   ADD role checks to bot management channel commands
 #   START Everything else
 
 
@@ -42,7 +45,9 @@ async def restrict_commands(ctx):
     # CHECKS IF COMMAND IS IN WHITELISTED CHANNELS
     #   CONTINUES PAST CHECK
     # FAILS CHECK
-    if ctx.channel.name in whitelisted_channels:
+    if ctx.channel.id in bot.whitelisted_channels:
+        return True
+    elif not bot.whitelisted_channels:
         return True
     else:
         return False
@@ -53,7 +58,7 @@ async def cool_down_check(ctx):
     # CHECK IF COMMAND IS IN GREYLISTED CHANNELS
     #   CONTINUES PAST CHECK AND STARTS COOLDOWN
     # CONTINUES PAST CHECK
-    if ctx.channel.name in greylisted_channels:
+    if ctx.channel.id in bot.greylisted_channels:
         bucket = _cd.get_bucket(ctx.message)
         retry_after = bucket.update_rate_limit()
         if retry_after:
@@ -86,6 +91,11 @@ async def on_message(message):
                 file = discord.File(f"images/{command.file}")
                 await message.channel.send(file=file)
                 return
+        for command in bot.text_commands:
+            if res == command.command:
+                await message.channel.send(command.text)
+                return
+
 
     await bot.process_commands(message)
 

@@ -1,10 +1,13 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 
 class ManagementCommands(commands.Cog, name="Management Commands"):
     def __init__(self, bot):
         self.bot = bot
+        self.greylist_collection = bot.server_info_database['greylist']
+        self.whitelist_collection = bot.server_info_database['whitelist']
+        self.get_all_whitelisted_greylisted_channels.start()
 
     @commands.command()
     @commands.is_owner()
@@ -25,37 +28,102 @@ class ManagementCommands(commands.Cog, name="Management Commands"):
         self.bot.load_extension(f'cogs.{bot_extension}')
         await ctx.send(f"Reloaded the {bot_extension} cog")
 
+    @tasks.loop(count=1)
+    async def get_all_whitelisted_greylisted_channels(self):
+        self.bot.image_commands.clear()
+        collection = await self.greylist_collection.find({}).to_list(length=None)
+        if len(collection) != 0:
+            for channel_dict in collection:
+                channel = await self.bot.fetch_channel(channel_dict["_id"])
+                self.bot.greylisted_channels.append(channel.id)
+
+        collection = await self.whitelist_collection.find({}).to_list(length=None)
+        if len(collection) != 0:
+            for channel_dict in collection:
+                channel = await self.bot.fetch_channel(channel_dict["_id"])
+                self.bot.whitelisted_channels.append(channel.id)
+
     @commands.group()
     async def greylist(self, ctx):
         pass
 
     @greylist.command()
-    async def enable(self, ctx, channel: discord.ChannelType):
-        pass
+    async def enable(self, ctx, channel: discord.TextChannel):
+        if await self.greylist_collection.count_documents({"_id": channel.id}, limit=1) != 0:
+            return await ctx.send("This channel is already greylisted.")
+
+        channel_dict = {"_id": channel.id}
+
+        await self.whitelist_collection.insert_one(channel_dict)
+
+        await ctx.send(f"Added {channel.name} to the greylist!")
 
     @greylist.command()
-    async def disable(self, ctx, channel: discord.ChannelType):
-        pass
+    async def disable(self, ctx, channel: discord.TextChannel):
+        if await self.greylist_collection.count_documents({"_id": channel.id}, limit=1) != 0:
+            await self.greylist_collection.delete_one({"_id": channel.id})
+
+            await ctx.send(f"Removed {channel.name} from the greylist!")
+        else:
+            await ctx.send(f"{channel.name} is not on the greylist!")
 
     @greylist.command()
     async def list(self, ctx):
-        pass
+        list_string = "```"
+        for channel_id in self.bot.greylisted_channels:
+            channel = await self.bot.fetch_channel(channel_id)
+
+            list_string += f"{channel.name}\n"
+
+        list_string += "```"
+
+        embed = discord.Embed(
+            title="Greylisted Channels",
+            description=list_string
+        )
+
+        await ctx.send(embed=embed)
 
     @commands.group()
     async def whitelist(self, ctx):
         pass
 
     @whitelist.command()
-    async def enable(self, ctx, channel: discord.ChannelType):
-        pass
+    async def enable(self, ctx, channel: discord.TextChannel):
+        if await self.whitelist_collection.count_documents({"_id": channel.id}, limit=1) != 0:
+            return await ctx.send("This channel is already whitelisted.")
+
+        channel_dict = {"_id": channel.id}
+
+        await self.whitelist_collection.insert_one(channel_dict)
+
+        await ctx.send(f"Added {channel.name} to the whitelist!")
 
     @whitelist.command()
-    async def disable(self, ctx, channel: discord.ChannelType):
-        pass
+    async def disable(self, ctx, channel: discord.TextChannel):
+        if await self.whitelist_collection.count_documents({"_id": channel.id}, limit=1) != 0:
+            await self.whitelist_collection.delete_one({"_id": channel.id})
+
+            await ctx.send(f"Removed {channel.name} from the whitelist!")
+        else:
+            await ctx.send(f"{channel.name} is not on the whitelist!")
 
     @whitelist.command()
     async def list(self, ctx):
-        pass
+        list_string = "```"
+        for channel_id in self.bot.whitelisted_channels:
+            channel = await self.bot.fetch_channel(channel_id)
+
+            list_string += f"{channel.name}\n"
+
+        list_string += "```"
+
+        embed = discord.Embed(
+            title="Whitelisted Channels",
+            description=list_string
+        )
+
+        await ctx.send(embed=embed)
 
 
 def setup(bot):
