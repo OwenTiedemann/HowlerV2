@@ -4,13 +4,16 @@ import discord
 from discord.ext import commands, tasks
 
 
-def has_custom_commands_role(ctx):
-    if discord.utils.get(ctx.author.roles, name="Commands"):
-        return True
-    elif discord.utils.get(ctx.author.roles, name="Discord Admin"):
-        return True
-    else:
-        return False
+def has_custom_commands_role():
+    def pred(ctx):
+        if discord.utils.get(ctx.author.roles, name="Highlighter + News"):
+            return True
+        elif discord.utils.get(ctx.author.roles, name="Discord Admin"):
+            return True
+        else:
+            return False
+
+    return commands.check(pred)
 
 
 class ReactionEvent:
@@ -44,8 +47,8 @@ class Reactions(commands.Cog, name="Reactions"):
                 "This is a group command, use `howler help reactionevent` to get list of subcommands under this command.")
             return
 
+    @has_custom_commands_role()
     @reactionevent.command(brief="Adds a reaction event.")
-    @commands.check(has_custom_commands_role)
     async def add(self, ctx, event_id: int, reaction: typing.Union[discord.Emoji, str], *, text):
         if type(reaction) == str:
             if await self.reaction_events_collection.count_documents({"_id": event_id}, limit=1) != 0:
@@ -77,8 +80,8 @@ class Reactions(commands.Cog, name="Reactions"):
             x = ReactionEvent(event_id, text, "custom", reaction.id, reaction.name)
             self.bot.reaction_events.append(x)
 
+    @has_custom_commands_role()
     @reactionevent.command(brief="Removes a reaction event.")
-    @commands.check(has_custom_commands_role)
     async def remove(self, ctx, event_id: int):
         await self.reaction_events_collection.delete_many({"_id": event_id})
         self.get_all_reaction_events.start()

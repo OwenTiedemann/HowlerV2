@@ -2,13 +2,17 @@ import discord
 from discord.ext import commands, tasks
 
 
-def has_custom_commands_role(ctx):
-    if discord.utils.get(ctx.author.roles, name="Commands"):
-        return True
-    elif discord.utils.get(ctx.author.roles, name="Discord Admin"):
-        return True
-    else:
-        return False
+def has_custom_commands_role():
+    def pred(ctx):
+        if discord.utils.get(ctx.author.roles, name="Highlighter + News"):
+            return True
+        elif discord.utils.get(ctx.author.roles, name="Discord Admin"):
+            return True
+        else:
+            return False
+
+    return commands.check(pred)
+
 
 class TextCommand:
     def __init__(self, command, text):
@@ -37,8 +41,8 @@ class TextCommands(commands.Cog, name="Text"):
                 "This is a group command, use `howler help text` to get list of subcommands under this command.")
             return
 
+    @has_custom_commands_role()
     @text.command(brief="Adds a custom text command.")
-    @commands.check(has_custom_commands_role)
     async def add(self, ctx, command, *, text):
         if await self.text_collection.count_documents({"_id": f"howler {command}"}, limit=1) != 0:
             return await ctx.send("This command name is already registered.")
@@ -49,8 +53,8 @@ class TextCommands(commands.Cog, name="Text"):
         x = TextCommand(command_name, text)
         self.bot.text_commands.append(x)
 
+    @has_custom_commands_role()
     @text.command(brief="Removes a custom text command.")
-    @commands.check(has_custom_commands_role)
     async def remove(self, ctx, command):
         await self.text_collection.delete_many({"_id": f"howler {command}"})
         self.get_all_text.start()

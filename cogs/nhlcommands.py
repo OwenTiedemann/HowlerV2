@@ -440,25 +440,25 @@ class NHLBot(commands.Cog, name="NHL"):
 
     # COMMAND GROUPS ###################################################################################################
 
-    @commands.group(brief="NHL Group Commands")
+    @commands.group(brief="NHL Group Commands", invoke_without_command=True)
     async def nhl(self, ctx):
         if not ctx.invoked_subcommand:
             await ctx.send("This is a group command, use `howler help nhl` to get list of subcommands under this command.")
             return
 
-    @nhl.group(brief="Player Group Commands")
+    @nhl.group(brief="Player Group Commands", invoke_without_command=True)
     async def player(self, ctx):
         if not ctx.invoked_subcommand:
             await ctx.send("This is a group command, use `howler help nhl player` to get list of subcommands under this command.")
             return
 
-    @player.group(brief="ID Group Commands")
+    @player.group(brief="ID Group Commands", invoke_without_command=True)
     async def id(self, ctx):
         if not ctx.invoked_subcommand:
             await ctx.send("This is a group command, use `howler help nhl player id` to get list of subcommands under this command.")
             return
 
-    @nhl.group(brief="Team Group Commands")
+    @nhl.group(brief="Team Group Commands", invoke_without_command=True)
     async def team(self, ctx):
         if not ctx.invoked_subcommand:
             await ctx.send("This is a group command, use `howler help nhl team` to get list of subcommands under this command.")
@@ -659,12 +659,20 @@ class NHLBot(commands.Cog, name="NHL"):
             description=f"```Date: {game_date} \nStatus: {game_status['detailedState']}```"
         )
 
+        ot = 0
+        if 'ot' in away_team['leagueRecord']:
+            ot = away_team['leagueRecord']['ot']
+
         embed.add_field(name=f"{away_team['team']['name']}",
                         value=f"```Record: {away_team['leagueRecord']['wins']}-{away_team['leagueRecord']['losses']}-"
-                              f"{away_team['leagueRecord']['ot']}```")
+                              f"{ot}```")
+
+        if 'ot' in home_team['leagueRecord']:
+            ot = home_team['leagueRecord']['ot']
+
         embed.add_field(name=f"{home_team['team']['name']}",
                         value=f"```Record: {home_team['leagueRecord']['wins']}-{home_team['leagueRecord']['losses']}-"
-                              f"{home_team['leagueRecord']['ot']}```")
+                              f"{ot}```")
 
         await ctx.send(embed=embed)
 

@@ -72,7 +72,7 @@ class TriviaBot(commands.Cog, name="Trivia"):
                 await add_user(user, season_user_collection)
                 await update_answer(user, answer, season_user_collection)
 
-    @commands.group(brief="Trivia Group Commands")
+    @commands.group(brief="Trivia Group Commands", invoke_without_command=True)
     async def trivia(self, ctx):
         if not ctx.invoked_subcommand:
             await ctx.send(

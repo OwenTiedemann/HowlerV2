@@ -2,12 +2,23 @@ import discord
 from discord.ext import commands, tasks
 
 
+def admin_or_owner():
+    def pred(ctx):
+        if ctx.author.id == 151087006989025281:
+            return True
+        elif discord.utils.get(ctx.author.roles, name="Discord Admin"):
+            return True
+        else:
+            return False
+    return commands.check(pred)
+
 class ManagementCommands(commands.Cog, name="Management Commands"):
     def __init__(self, bot):
         self.bot = bot
         self.greylist_collection = bot.server_info_database['greylist']
         self.whitelist_collection = bot.server_info_database['whitelist']
         self.get_all_whitelisted_greylisted_channels.start()
+
 
     @commands.command()
     @commands.is_owner()
@@ -30,7 +41,6 @@ class ManagementCommands(commands.Cog, name="Management Commands"):
 
     @tasks.loop(count=1)
     async def get_all_whitelisted_greylisted_channels(self):
-        self.bot.image_commands.clear()
         collection = await self.greylist_collection.find({}).to_list(length=None)
         if len(collection) != 0:
             for channel_dict in collection:
@@ -43,40 +53,42 @@ class ManagementCommands(commands.Cog, name="Management Commands"):
                 channel = await self.bot.fetch_channel(channel_dict["_id"])
                 self.bot.whitelisted_channels.append(channel.id)
 
-    @commands.group()
+    @commands.group(brief="Greylist Group Commands")
     async def greylist(self, ctx):
         if not ctx.invoked_subcommand:
             await ctx.send(
                 "This is a group command, use `howler whitelist help` to get list of subcommands under this command.")
             return
 
-    @greylist.command(brief="Enables 20 second cooldown on commands in this channel.")
-    @commands.has_role('Discord Admin')
-    async def enable(self, ctx, channel: discord.TextChannel):
+    @admin_or_owner()
+    @greylist.command(name="enable", brief="Enables 20 second cooldown on commands in this channel.")
+    async def _enable(self, ctx, channel: discord.TextChannel):
         if await self.greylist_collection.count_documents({"_id": channel.id}, limit=1) != 0:
             return await ctx.send("This channel is already greylisted.")
 
         channel_dict = {"_id": channel.id}
 
-        await self.whitelist_collection.insert_one(channel_dict)
+        await self.greylist_collection.insert_one(channel_dict)
 
         await ctx.send(f"Added {channel.name} to the greylist!")
+        self.bot.greylisted_channels.clear()
         self.get_all_whitelisted_greylisted_channels.start()
 
-    @greylist.command(brief="Disables cooldowns for commands in specified channel", description="Disables cooldowns for commands in specified channel. Disables commands if channel is not in whitelist.")
-    @commands.has_role('Discord Admin')
-    async def disable(self, ctx, channel: discord.TextChannel):
+    @admin_or_owner()
+    @greylist.command(name="disable", brief="Disables cooldowns for commands in specified channel", description="Disables cooldowns for commands in specified channel. Disables commands if channel is not in whitelist.")
+    async def _disable(self, ctx, channel: discord.TextChannel):
         if await self.greylist_collection.count_documents({"_id": channel.id}, limit=1) != 0:
             await self.greylist_collection.delete_one({"_id": channel.id})
 
             await ctx.send(f"Removed {channel.name} from the greylist!")
         else:
             await ctx.send(f"{channel.name} is not on the greylist!")
+        self.bot.greylisted_channels.clear()
         self.get_all_whitelisted_greylisted_channels.start()
 
-    @greylist.command(brief="Lists all greylisted commands.")
-    async def list(self, ctx):
-        list_string = "```"
+    @greylist.command(name="list", brief="Lists all greylisted commands.")
+    async def _list(self, ctx):
+        list_string = "```\n"
         for channel_id in self.bot.greylisted_channels:
             channel = await self.bot.fetch_channel(channel_id)
 
@@ -91,15 +103,15 @@ class ManagementCommands(commands.Cog, name="Management Commands"):
 
         await ctx.send(embed=embed)
 
-    @commands.group()
+    @commands.group(brief="Whitelist Group Commands")
     async def whitelist(self, ctx):
         if not ctx.invoked_subcommand:
             await ctx.send(
                 "This is a group command, use `howler whitelist help` to get list of subcommands under this command.")
             return
 
+    @admin_or_owner()
     @whitelist.command(brief="Enables all commands in specified channels.")
-    @commands.has_role('Discord Admin')
     async def enable(self, ctx, channel: discord.TextChannel):
         if await self.whitelist_collection.count_documents({"_id": channel.id}, limit=1) != 0:
             return await ctx.send("This channel is already whitelisted.")
@@ -109,10 +121,11 @@ class ManagementCommands(commands.Cog, name="Management Commands"):
         await self.whitelist_collection.insert_one(channel_dict)
 
         await ctx.send(f"Added {channel.name} to the whitelist!")
+        self.bot.whitelisted_channels.clear()
         self.get_all_whitelisted_greylisted_channels.start()
 
+    @admin_or_owner()
     @whitelist.command(brief="Disables all commands in specified channel.", description="Disables all commands in specified channel. If channel is greylisted commands will continue to work.")
-    @commands.has_role('Discord Admin')
     async def disable(self, ctx, channel: discord.TextChannel):
         if await self.whitelist_collection.count_documents({"_id": channel.id}, limit=1) != 0:
             await self.whitelist_collection.delete_one({"_id": channel.id})
@@ -120,11 +133,12 @@ class ManagementCommands(commands.Cog, name="Management Commands"):
             await ctx.send(f"Removed {channel.name} from the whitelist!")
         else:
             await ctx.send(f"{channel.name} is not on the whitelist!")
+        self.bot.whitelisted_channels.clear()
         self.get_all_whitelisted_greylisted_channels.start()
 
     @whitelist.command(brief="Lists all whitelisted channels.")
     async def list(self, ctx):
-        list_string = "```"
+        list_string = "```\n"
         for channel_id in self.bot.whitelisted_channels:
             channel = await self.bot.fetch_channel(channel_id)
 

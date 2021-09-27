@@ -96,6 +96,11 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
+
+@bot.event
+async def on_command_error(ctx, error):
+    await ctx.send(error)
+
 if __name__ == '__main__':
     for extension in initial_extensions:
         bot.load_extension(extension)
