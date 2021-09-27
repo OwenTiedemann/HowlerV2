@@ -3,6 +3,7 @@ import tweepy
 from discord.ext import commands
 import motor.motor_asyncio
 import configparser
+import jishaku
 
 config = configparser.ConfigParser()
 config.read('config.ini')
