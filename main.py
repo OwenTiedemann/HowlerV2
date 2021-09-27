@@ -28,7 +28,7 @@ bot.reaction_event_database = database_client['reactionevents']
 bot.server_info_database = database_client['server_info']
 bot.text_database = database_client['text_commands']
 
-initial_extensions = ['cogs.reactions', 'cogs.BotManagement', 'cogs.textcommands', 'cogs.imagecommands', 'cogs.nhlcommands', 'cogs.triviacommands', 'cogs.twitter']
+initial_extensions = ['cogs.reactions', 'cogs.BotManagement', 'cogs.textcommands', 'cogs.imagecommands', 'cogs.nhlcommands', 'cogs.triviacommands', 'cogs.twitter', 'jishaku']
 
 bot.whitelisted_channels = []
 bot.greylisted_channels = []
